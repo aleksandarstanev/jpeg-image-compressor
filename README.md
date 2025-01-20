@@ -1,1 +1,1 @@
-# jpeg-encoder
+# jpeg-image-compressor
