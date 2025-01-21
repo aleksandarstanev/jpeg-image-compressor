@@ -46,10 +46,17 @@ def main():
     # Split into channels and compress each channel separately.
     rec_img = np.empty_like(img)
     for channel_num in range(3):
-        mono_image = approximate_mono_image(img_ycc[:, :, channel_num],
+        if channel_num == 0:
+            quantization_matrix = utils.luminance_quantization_matrix
+        else:
+            quantization_matrix = utils.chrominance_quantization_matrix
+
+        single_channel_image = approximate_single_channel_image(img_ycc[:, :, channel_num],
                                             num_coeffs=args.num_coeffs,
-                                            scale_factor=args.scale_factor)
-        rec_img[:, :, channel_num] = mono_image
+                                            scale_factor=args.scale_factor,
+                                            quantization_matrix=quantization_matrix)
+        
+        rec_img[:, :, channel_num] = single_channel_image
 
     # Convert back to RGB from YCrCb
     rec_img_rgb = cv.cvtColor(rec_img, code=cv.COLOR_YCrCb2BGR)
@@ -95,7 +102,7 @@ def main():
     cv.imshow('Compressed image', rec_img_rgb)
     cv.waitKey(0)
 
-def approximate_mono_image(img, num_coeffs=None, scale_factor=1):
+def approximate_single_channel_image(img, num_coeffs=None, scale_factor=1, quantization_matrix=None):
     """
     Approximates a single channel image by using only the first coefficients of the DCT.
     1) The image is chopped into 8x8 pixels patches and the DCT is applied to each patch.
@@ -133,11 +140,11 @@ def approximate_mono_image(img, num_coeffs=None, scale_factor=1):
         reduced_dct_coeffs = [utils.zig_zag(dct_block, num_coeffs) for dct_block in dct_blocks]
     else:
         # Quantize all the DCT coefficients using the quantization matrix and the scaling factor
-        reduced_dct_coeffs = [np.round(dct_block / (utils.jpeg_quantization_matrix * scale_factor))
+        reduced_dct_coeffs = [np.round(dct_block / (quantization_matrix * scale_factor))
                               for dct_block in dct_blocks]
 
         # Scale back the coefficients to the original range
-        reduced_dct_coeffs = [reduced_dct_coeff * (utils.jpeg_quantization_matrix * scale_factor)
+        reduced_dct_coeffs = [reduced_dct_coeff * (quantization_matrix * scale_factor)
                           for reduced_dct_coeff in reduced_dct_coeffs]
 
     # Inverse DCT of every block
@@ -149,7 +156,6 @@ def approximate_mono_image(img, num_coeffs=None, scale_factor=1):
         for row_block_num in range(8):
             for block in chunk_row_blocks:
                 rec_img.extend(block[row_block_num])
-                
     rec_img = np.array(rec_img).reshape(height, width)
 
     return rec_img
