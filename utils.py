@@ -1,6 +1,6 @@
 import numpy as np
 
-jpeg_quantiz_matrix = np.array([
+jpeg_quantization_matrix = np.array([
     [16, 11, 12, 14, 12, 10, 16, 14],
     [13, 14, 18, 17, 16, 19, 24, 40],
     [26, 24, 22, 22, 24, 49, 35, 37],
@@ -20,52 +20,52 @@ def chunks(l, n):
 
 def zig_zag(array, n=None):
     """
-    Return a new array where only the first n subelements in zig-zag order are kept.
+    Return a new array where only the first n elements in zig-zag order are kept.
     The remaining elements are set to 0.
     :param array: 2D array_like
-    :param n: Keep up to n subelements. Default: all subelements
+    :param n: Keep up to n elements. Default: all elements
     :return: The new reduced array.
     """
 
     shape = np.array(array).shape
 
-    assert len(shape) >= 2, "Array must be a 2D array_like"
+    assert len(shape) >= 2, "Array must be 2D"
 
     if n == None:
         n = shape[0] * shape[1]
-    assert 0 <= n <= shape[0] * shape[1], 'n must be the number of subelements to return'
+    assert 0 <= n <= shape[0] * shape[1], 'Number of elements to keep must be between 0 and the total number of elements'
 
     res = np.zeros_like(array)
 
-    (j, i) = (0, 0)
+    (r, c) = (0, 0)
     direction = 'r'  # {'r': right, 'd': down, 'ur': up-right, 'dl': down-left}
-    for subel_num in range(1, n + 1):
-        res[j][i] = array[j][i]
+    for _ in range(0, n):
+        res[r][c] = array[r][c]
         if direction == 'r':
-            i += 1
-            if j == shape[0] - 1:
+            c += 1
+            if r == shape[0] - 1:
                 direction = 'ur'
             else:
                 direction = 'dl'
         elif direction == 'dl':
-            i -= 1
-            j += 1
-            if j == shape[0] - 1:
+            c -= 1
+            r += 1
+            if r == shape[0] - 1:
                 direction = 'r'
-            elif i == 0:
+            elif c == 0:
                 direction = 'd'
         elif direction == 'd':
-            j += 1
-            if i == 0:
+            r += 1
+            if c == 0:
                 direction = 'ur'
             else:
                 direction = 'dl'
         elif direction == 'ur':
-            i += 1
-            j -= 1
-            if i == shape[1] - 1:
+            c += 1
+            r -= 1
+            if c == shape[1] - 1:
                 direction = 'd'
-            elif j == 0:
+            elif r == 0:
                 direction = 'r'
 
     return res
