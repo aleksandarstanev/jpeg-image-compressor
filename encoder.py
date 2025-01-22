@@ -43,6 +43,9 @@ def main():
     # Convert to YCrCb color space
     img_ycc = cv.cvtColor(img, code=cv.COLOR_BGR2YCrCb)
 
+    # Perform 4:2:0 chroma subsampling
+    img_ycc = chroma_subsampling(img_ycc)
+
     # Split into channels and compress each channel separately.
     rec_img = np.empty_like(img)
     for channel_num in range(3):
@@ -95,12 +98,43 @@ def main():
         raise ValueError("Output file must have a .jpg or .jpeg extension")
     
     # Calculate compression ratio
-    compression_ratio = os.path.getsize(args.output_path) / os.path.getsize(args.image_path)
+    orig_img_size = os.path.getsize(args.image_path)
+    rec_img_size = os.path.getsize(args.output_path)
+
+    compression_ratio = rec_img_size / orig_img_size
+
+    print(f"Original image size: {orig_img_size} bytes")
+    print(f"Compressed image size: {rec_img_size} bytes")
     print(f"Compression ratio: {compression_ratio}")
     
     # Show the compressed image
     cv.imshow('Compressed image', rec_img_rgb)
     cv.waitKey(0)
+
+def chroma_subsampling(img):
+    """
+    Performs 4:2:0 chroma subsampling on the YCrCb image.
+    Subsamples the chrominance channels (Cr and Cb) both horizontally and vertically.
+    Returns the image with subsampled chrominance channels.
+    """
+
+    img_copy = img.copy()
+    
+    height, width = img.shape[:2]
+    
+    # Subsample Cr and Cb channels (channels 1 and 2)
+    for channel in [1, 2]:
+        # Resize chrominance channel to half width AND half height (4:2:0 subsampling)
+        chrominance = cv.resize(img_copy[:, :, channel], 
+                              (width//2, height//2),
+                              interpolation=cv.INTER_LINEAR)
+        
+        # Resize back to original size
+        img_copy[:, :, channel] = cv.resize(chrominance,
+                                          (width, height),
+                                          interpolation=cv.INTER_NEAREST)
+    
+    return img_copy
 
 def approximate_single_channel_image(img, num_coeffs=None, scale_factor=1, quantization_matrix=None):
     """
